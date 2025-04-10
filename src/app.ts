@@ -5,9 +5,6 @@ import compression from 'compression';
 import { notFoundHandler, errorHandler } from './middleware/error.middleware';
 import logger from './utils/logger';
 
-// Import routes
-// import authRoutes from './routes/auth.route';
-
 const app: Application = express();
 
 // Security middleware
@@ -31,7 +28,6 @@ app.get('/api/healthz', (_, res) => {
   res.status(200).json({
     status: 'success',
     message: 'API is running',
-    // environment: .env,
     timestamp: new Date().toISOString(),
   });
 });
