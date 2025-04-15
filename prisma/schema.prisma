@@ -4,21 +4,73 @@
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
-generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Basic model for application
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+// User roles in the system.
+enum Role {
+  ADMIN
+  POLICE
+  USER
+}
+
+// Status for a report
+enum ReportStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  MATCHED
+}
+
+// The primary user model.
+// Each user can submit many reports and receive notifications.
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String         @id @default(uuid())
+  name           String
+  email          String         @unique
+  password       String
+  role           Role           @default(USER)
+  createdAt      DateTime       @default(now())
+  reports        Report[]
+  notifications  Notification[]
+}
+
+// Model to hold missing person reports.
+// It includes details like a person’s name, optional physical attributes,
+// image URL, an optional face embedding (stored as JSON for further processing),
+// location information, and a reference to the submitting user.
+model Report {
+  id             String       @id @default(uuid())
+  personName     String?      
+  age            Int?         
+  gender         String?      
+  imageUrl       String
+  faceEmbedding  Json?        // e.g., facial embedding data from the AI module.
+  status         ReportStatus @default(PENDING)
+  location       String?      
+  lat            Float?       
+  lon            Float?       
+  submittedAt    DateTime     @default(now())
+  submittedBy    User         @relation(fields: [submittedById], references: [id])
+  submittedById  String
+  matchedWith    String?     
+}
+
+// Model for system notifications.
+// Useful for sending real-time updates or email alerts.
+model Notification {
+  id          String    @id @default(uuid())
+  message     String
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  // Relationship: Each notification is associated with a user.
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
 }

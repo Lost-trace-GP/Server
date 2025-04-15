@@ -1,6 +1,9 @@
+import { configDotenv } from 'dotenv';
 import app from './app';
 import { connectDb, disconnectDb } from './utils/db';
 import logger from './utils/logger';
+
+configDotenv();
 
 const PORT = process.env.PORT || 3000;
 
@@ -14,7 +17,7 @@ const startServer = async () => {
     // Start Express server
     const server = app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
-      logger.info(`API Health: http://localhost:${PORT}/api/health`);
+      logger.info(`API Health: http://localhost:${PORT}/api/healthz`);
     });
 
     // Handle graceful shutdown

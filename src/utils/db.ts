@@ -65,6 +65,7 @@ export const connectDb = async (): Promise<void> => {
     logger.info('Database connected successfully');
   } catch (error) {
     logger.error('Failed to connect to database:', error);
+    console.log(process.env.DATABASE_URL);
     process.exit(1);
   }
 };
