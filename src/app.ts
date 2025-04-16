@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { notFoundHandler, errorHandler } from './middleware/error.middleware';
 import logger from './utils/logger';
+import authRouter from './routes/authRoutes';
 
 const app: Application = express();
 
@@ -21,7 +22,10 @@ app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// API Status route
+// API Routes
+app.use('/api/auth', authRouter);
+
+// API Status endpoint
 app.get('/api/healthz', (_, res) => {
   res.status(200).json({
     status: 'success',

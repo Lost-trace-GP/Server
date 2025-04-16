@@ -6,11 +6,22 @@ import logger from '../utils/logger';
 export class ApiError extends Error {
   statusCode: number;
   isOperational: boolean;
+  code?: string;
+  errors?: any[];
 
-  constructor(statusCode: number, message: string, isOperational = true, stack = '') {
+  constructor(
+    statusCode: number,
+    message: string,
+    isOperational = true,
+    stack = '',
+    code?: string,
+    errors?: any[],
+  ) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = isOperational;
+    this.code = code;
+    this.errors = errors;
 
     if (stack) {
       this.stack = stack;
@@ -22,7 +33,10 @@ export class ApiError extends Error {
 
 // Handle 404 (Not Found) errors
 export const notFoundHandler = (req: Request, res: Response, next: NextFunction) => {
-  const error = new ApiError(StatusCodes.NOT_FOUND, `Cannot ${req.method} ${req.originalUrl}`);
+  const error = new ApiError(
+    StatusCodes.NOT_FOUND,
+    `Resource not found: Cannot ${req.method} ${req.originalUrl}`,
+  );
   next(error);
 };
 
@@ -35,29 +49,58 @@ export const errorHandler = (
   next: NextFunction,
 ) => {
   // Set defaults
-  let { statusCode, message } = err;
-  const response: Record<string, any> = {
-    status: 'error',
-    message,
-  };
+  let { statusCode, message, code, errors } = err;
 
   // If status code is not set, default to 500
   if (!statusCode) {
     statusCode = StatusCodes.INTERNAL_SERVER_ERROR;
   }
 
-  // Add stack trace in development mode
+  // Normalize error code if not provided
+  if (!code) {
+    code = statusCode.toString();
+  }
+
+  // Create standardized response object
+  const response: Record<string, any> = {
+    status: 'error',
+    code: statusCode,
+    message,
+    timestamp: new Date().toISOString(),
+    path: req.originalUrl,
+  };
+
+  // Add errors array if available
+  if (errors && errors.length > 0) {
+    response.errors = errors;
+  }
+
+  // Add stack trace ONLY in development mode
   if (process.env.NODE_ENV === 'development' && err.stack) {
     response.stack = err.stack;
   }
 
-  // Log the error
-  if (statusCode === StatusCodes.INTERNAL_SERVER_ERROR) {
-    logger.error(`[${req.method}] ${req.path} >> StatusCode:: ${statusCode}, Message:: ${message}`);
-    logger.error(err.stack || 'No stack trace available');
-  } else {
-    logger.warn(`[${req.method}] ${req.path} >> StatusCode:: ${statusCode}, Message:: ${message}`);
+  // Sanitize error message for production to avoid exposing sensitive information
+  if (process.env.NODE_ENV === 'production' && statusCode === StatusCodes.INTERNAL_SERVER_ERROR) {
+    response.message = 'Internal server error';
   }
 
+  // Log the error with appropriate severity level
+  const logData = {
+    method: req.method,
+    path: req.path,
+    statusCode,
+    message,
+    userId: (req as any).user?.id || 'unauthenticated',
+    ip: req.ip,
+  };
+
+  if (statusCode === StatusCodes.INTERNAL_SERVER_ERROR) {
+    logger.error('API Error', { ...logData, stack: err.stack });
+  } else {
+    logger.warn('API Warning', logData);
+  }
+
+  // Send the response
   res.status(statusCode).json(response);
 };
