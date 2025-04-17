@@ -3,9 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import { notFoundHandler, errorHandler } from './middleware/error.middleware';
-import logger from './utils/logger';
 import authRouter from './routes/authRoutes';
-
+import userRoutes from './routes/userRoutes';
 const app: Application = express();
 
 // Security middleware
@@ -24,6 +23,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // API Routes
 app.use('/api/auth', authRouter);
+app.use('/api/user', userRoutes);
 
 // API Status endpoint
 app.get('/api/healthz', (_, res) => {

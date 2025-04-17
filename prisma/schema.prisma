@@ -40,6 +40,9 @@ model User {
   createdAt      DateTime       @default(now())
   reports        Report[]
   notifications  Notification[]
+  // for Password reset
+  resetToken           String?  @db.VarChar(255)
+  resetTokenExpiry     DateTime?
 }
 
 // Model to hold missing person reports.

@@ -1,6 +1,5 @@
 import jwt, { Secret } from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
-import '../types/express';
 import { StatusCodes } from 'http-status-codes';
 import { ApiError } from './error.middleware';
 
