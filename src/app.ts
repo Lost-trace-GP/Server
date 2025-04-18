@@ -5,6 +5,7 @@ import compression from 'compression';
 import { notFoundHandler, errorHandler } from './middleware/error.middleware';
 import authRouter from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
+import reportRoutes from './routes/reportsRoutes';
 const app: Application = express();
 
 // Security middleware
@@ -24,6 +25,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // API Routes
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRoutes);
+app.use('/api/report', reportRoutes);
 
 // API Status endpoint
 app.get('/api/healthz', (_, res) => {

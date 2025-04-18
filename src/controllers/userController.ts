@@ -1,7 +1,8 @@
+import { AuthenticatedRequest } from '../types';
 import { prisma } from '../utils/db';
 import { Request, Response } from 'express';
 
-export const updateProfile = async (req: Request & { user?: { id: string } }, res: Response) => {
+export const updateProfile = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const updatedData = req.body;
