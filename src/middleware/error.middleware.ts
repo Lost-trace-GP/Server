@@ -96,7 +96,7 @@ export const errorHandler = (
   };
 
   if (statusCode === StatusCodes.INTERNAL_SERVER_ERROR) {
-    logger.error('API Error', { ...logData, stack: err.stack });
+    logger.error('API Error', { ...logData, stack: err });
   } else {
     logger.warn('API Warning', logData);
   }

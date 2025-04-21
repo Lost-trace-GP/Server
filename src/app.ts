@@ -6,6 +6,7 @@ import { notFoundHandler, errorHandler } from './middleware/error.middleware';
 import authRouter from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import reportRoutes from './routes/reportsRoutes';
+import { authenticateToken } from './middleware/authMiddleware';
 const app: Application = express();
 
 // Security middleware
@@ -34,6 +35,23 @@ app.get('/api/healthz', (_, res) => {
     message: 'API is running',
     timestamp: new Date().toISOString(),
   });
+});
+// test auth
+
+app.get('/api/protected', authenticateToken, async (_, res) => {
+  try {
+    res.json({
+      status: 'success',
+      message: 'You are protected',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error',
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Error handling middleware

@@ -53,8 +53,9 @@ model Report {
   id             String       @id @default(uuid())
   personName     String?      
   age            Int?         
-  gender         String?      
-  imageUrl       String
+  gender         String?   
+  description    String
+  imageUrl       String?
   faceEmbedding  Json?        // e.g., facial embedding data from the AI module.
   status         ReportStatus @default(PENDING)
   location       String?      
