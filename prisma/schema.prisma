@@ -56,6 +56,7 @@ model Report {
   gender         String?   
   description    String
   imageUrl       String?
+  imagePublicId String? // Cloudinary public ID for the image.
   faceEmbedding  Json?        // e.g., facial embedding data from the AI module.
   status         ReportStatus @default(PENDING)
   location       String?      

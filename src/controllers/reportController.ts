@@ -4,51 +4,48 @@ import { StatusCodes } from 'http-status-codes';
 import { AuthenticatedRequest } from '../types';
 import logger from '../utils/logger';
 import cloudinary from '../config/cloudinary';
+import { v4 as uuid } from 'uuid';
+import { Readable } from 'stream';
 
-export const createReport = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { personName, age, gender, description } = req.body;
+export const createReport = async (req: AuthenticatedRequest, res: Response) => {
+  const file = req.file;
+  if (!file) return res.status(400).json({ message: 'No image provided' });
 
-    const imageUrl = (req.file as any)?.path;
+  // Build a unique public_id
+  const slug = req.body.personName.replace(/\s+/g, '-').toLowerCase();
+  const publicId = `lost-trace-reports/${slug}-${uuid()}`;
 
-    if (!imageUrl) {
-      res.status(400).json({ status: 'error', message: 'Image upload failed' });
-      return;
-    }
-    if (!req.user?.id) {
-      res.status(StatusCodes.UNAUTHORIZED).json({
-        status: 'error',
-        message: 'User not authenticated',
-        timestamp: new Date().toISOString(),
+  // Upload buffer via upload_stream
+  const stream = cloudinary.uploader.upload_stream(
+    {
+      folder: 'lost-trace-reports',
+      allowed_formats: ['jpg', 'jpeg', 'png'],
+      transformation: [{ width: 500, height: 500, crop: 'limit' }, { quality: 'auto' }],
+    },
+    async (error, result) => {
+      if (error || !result) {
+        console.error('Cloudinary upload error:', error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Upload failed' });
+      }
+      const report = await prisma.report.create({
+        data: {
+          personName: req.body.personName,
+          age: parseInt(req.body.age),
+          gender: req.body.gender,
+          description: req.body.description,
+          imageUrl: result.secure_url,
+          imagePublicId: result.public_id,
+          submittedById: req.user!.id,
+        },
       });
-      return;
-    }
+      res
+        .status(StatusCodes.CREATED)
+        .json({ status: 'success', message: 'Report Created Successfully!', report });
+    },
+  );
 
-    const report = await prisma.report.create({
-      data: {
-        personName,
-        age: parseInt(age),
-        imageUrl,
-        description,
-        gender,
-        submittedById: req.user.id,
-      },
-    });
-
-    res.status(201).json({
-      status: 'Success',
-      message: 'Report created successfully',
-      timestamp: new Date().toISOString(),
-      data: { report },
-    });
-  } catch (error) {
-    logger.error('Error creating report:', error);
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      status: 'error',
-      message: 'Failed to create report',
-      timestamp: new Date().toISOString(),
-    });
-  }
+  // Push the file buffer into the upload stream
+  Readable.from(file.buffer).pipe(stream);
 };
 
 export const getAllReports = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -60,7 +57,7 @@ export const getAllReports = async (req: AuthenticatedRequest, res: Response): P
       orderBy: { submittedAt: 'desc' },
     });
 
-    res.json({
+    res.status(StatusCodes.OK).json({
       status: 'Success',
       message: 'Reports fetched successfully',
       timestamp: new Date().toISOString(),
@@ -130,7 +127,7 @@ export const getUserReports = async (req: AuthenticatedRequest, res: Response): 
 };
 
 export const deleteReport = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  const { id } = await req.params;
+  const { id } = req.params;
   try {
     const report = await prisma.report.findUnique({ where: { id } });
     if (!report || report.submittedById !== req.user!.id) {
@@ -141,13 +138,8 @@ export const deleteReport = async (req: AuthenticatedRequest, res: Response): Pr
       });
       return;
     }
-    const parts = report.imageUrl!.split('/');
-    const filename = parts.pop()!.split('.')[0];
-    const folder = parts.slice(-2, -1)[0];
-    const publicId = `${folder}/${filename}`;
-
-    console.log(publicId);
-    await cloudinary.uploader.destroy(publicId);
+    const result = await cloudinary.uploader.destroy(report.imagePublicId!);
+    console.log('Cloudinary delete result:', result);
 
     await prisma.report.delete({
       where: {
