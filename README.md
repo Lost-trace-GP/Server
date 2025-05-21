@@ -3,7 +3,7 @@
 ### 1. Clone the repository
 
 ```bash
-git clone git@github.com:Lost-trace-GP/Backend.git
+git clone git@github.com:Lost-trace-GP/Server.git
 cd lost-trace-api
 ```
 
