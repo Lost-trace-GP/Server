@@ -21,8 +21,11 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.6.0",
+    "@tensorflow/tfjs-node": "^4.22.0",
     "@types/nodemailer": "^6.4.17",
+    "@vladmandic/face-api": "^1.7.15",
     "bcrypt": "^5.1.1",
+    "canvas": "^3.1.0",
     "cloudinary": "^2.6.0",
     "compression": "^1.8.0",
     "cors": "^2.8.5",
