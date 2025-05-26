@@ -7,6 +7,8 @@ import authRouter from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import reportRoutes from './routes/reportsRoutes';
 import { authenticateToken } from './middleware/authMiddleware';
+import testRoutes from './routes/testRoutes';
+import notificationRoutes from './routes/notificationRoutes';
 const app: Application = express();
 
 // Security middleware
@@ -27,6 +29,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRoutes);
 app.use('/api/report', reportRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/test', authenticateToken, testRoutes);
 
 // API Status endpoint
 app.get('/api/healthz', (_, res) => {
@@ -35,23 +39,6 @@ app.get('/api/healthz', (_, res) => {
     message: 'API is running',
     timestamp: new Date().toISOString(),
   });
-});
-// test auth
-
-app.get('/api/protected', authenticateToken, async (_, res) => {
-  try {
-    res.json({
-      status: 'success',
-      message: 'You are protected',
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Internal server error',
-      timestamp: new Date().toISOString(),
-    });
-  }
 });
 
 // Error handling middleware

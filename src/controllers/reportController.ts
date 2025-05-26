@@ -7,6 +7,7 @@ import cloudinary from '../config/cloudinary';
 import { v4 as uuid } from 'uuid';
 import { Readable } from 'stream';
 import faceService from '../services/faceService';
+import { createNotification, NotificationType } from '../services/notification';
 
 export const createReport = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
@@ -110,13 +111,59 @@ export const createReport = async (req: AuthenticatedRequest, res: Response): Pr
             logger.info(
               `Match found for report ${report.id} with report ${matchResults[0].id} (distance: ${matchResults[0].distance})`,
             );
-            await prisma.report.update({
-              where: { id: report.id },
-              data: {
-                matchedWith: matchResults[0].id,
-                status: 'MATCHED',
-              },
+            await Promise.all([
+              prisma.report.update({
+                where: { id: report.id },
+                data: {
+                  matchedWith: matchResults[0].id,
+                  status: 'MATCHED',
+                },
+              }),
+              prisma.report.update({
+                where: { id: matchResults[0].id },
+                data: {
+                  matchedWith: report.id,
+                  status: 'MATCHED',
+                },
+              }),
+            ]);
+            const best = matchResults[0];
+            const matchedReport = await prisma.report.findUnique({
+              where: { id: best.id },
+              include: { submittedBy: { select: { id: true, email: true, name: true } } },
             });
+
+            await Promise.all([
+              // Notification for the user who just submitted the report
+              createNotification({
+                userId: report.submittedById,
+                type: NotificationType.MATCH_FOUND,
+                message: `We found a potential match  confidence for your report on ${report.personName}.`,
+                metadata: {
+                  reportId: report.id,
+                  matchId: best.id,
+                  personName: report.personName,
+                  matchedPersonName: matchedReport?.personName,
+                },
+                sendEmail: true, // Enable email for important matches
+              }),
+
+              // Notification for the user whose report was matched
+              matchedReport
+                ? createNotification({
+                    userId: matchedReport.submittedById,
+                    type: NotificationType.MATCH_FOUND,
+                    message: `Your report for ${matchedReport.personName} has a potential match confidence).`,
+                    metadata: {
+                      reportId: matchedReport.id,
+                      matchId: report.id,
+                      personName: matchedReport.personName,
+                      matchedPersonName: report.personName,
+                    },
+                    sendEmail: true,
+                  })
+                : Promise.resolve(null),
+            ]);
           }
 
           // Prepare enriched matches with report details

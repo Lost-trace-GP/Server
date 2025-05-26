@@ -38,3 +38,23 @@ export const sendPasswordResetEmail = async (
     throw new Error('Failed to send password reset email');
   }
 };
+
+export const sendMatchFoundEmail = async (
+  email: string,
+  reportId: string,
+  personName: string,
+  matchedReportId: string,
+  confidence: string,
+) => {
+  await transporter.sendMail({
+    to: email,
+    subject: 'Potential Match Found',
+    text: `We've found a potential match for your missing person report for ${personName}.`,
+    html: `
+      <h1>Potential Match Found</h1>
+      <p>We've found a potential match for your missing person report for <strong>${personName}</strong>.</p>
+      <p>Match confidence: ${confidence}</p>
+      <p>Please log in to your account to view the details of this match.</p>
+    `,
+  });
+};

@@ -13,7 +13,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
 
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, phone } = req.body;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -26,6 +26,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       data: {
         name,
         email,
+        phone: parseInt(phone),
         password: hashedPassword,
       },
     });

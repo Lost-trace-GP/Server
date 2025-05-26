@@ -2,6 +2,8 @@ import { configDotenv } from 'dotenv';
 import app from './app';
 import { connectDb, disconnectDb } from './utils/db';
 import logger from './utils/logger';
+import { initializeSocketIO } from './socket';
+import http from 'http';
 
 configDotenv();
 
@@ -13,6 +15,12 @@ const PORT = process.env.PORT || 3000;
 const startServer = async () => {
   try {
     await connectDb();
+
+    // Create HTTP server
+    const wsServer = http.createServer(app);
+
+    // Initialize Socket.IO
+    initializeSocketIO(wsServer);
 
     // Start Express server
     const server = app.listen(PORT, () => {
