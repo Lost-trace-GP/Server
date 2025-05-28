@@ -1,6 +1,7 @@
 import { prisma } from '../utils/db';
 import logger from '../utils/logger';
 import { io } from '../socket';
+import { sendSms } from '../utils/sms';
 
 export enum NotificationType {
   REPORT_APPROVED = 'REPORT_APPROVED',
@@ -24,7 +25,7 @@ export async function createNotification({
   message,
   metadata = {},
   sendEmail = false,
-  sendSMS = false,
+  sendSMS = true,
 }: NotificationOptions) {
   try {
     // Validate user exists
@@ -76,26 +77,23 @@ export async function createNotification({
       logger.info(`User ${userId} not connected, notification stored for later delivery`);
     }
 
-    // Enhanced email notification (when implemented)
     if (sendEmail && notification.user?.email) {
       try {
-        // You can implement this using your existing email service
-        // await sendNotificationEmail(notification.user.email, type, message, metadata);
         logger.info(`Email notification queued for ${notification.user.email}`);
       } catch (emailError) {
         logger.error(`Failed to send email notification: ${emailError}`);
-        // Don't throw here - notification was created successfully
       }
     }
 
-    // SMS notification placeholder
     if (sendSMS && notification.user?.phone) {
       try {
-        // await sendSMSNotification(notification.user.phone, message);
+        const smsBody = NotificationType.MATCH_FOUND
+          ? `LostTrace Alert: Possible match for ${metadata.personName} please checkout your dashboard`
+          : `LostTrace: ${message}`;
+        await sendSms(notification.user.phone.toString(), smsBody);
         logger.info(`SMS notification queued for ${notification.user.phone}`);
       } catch (smsError) {
         logger.error(`Failed to send SMS notification: ${smsError}`);
-        // Don't throw here - notification was created successfully
       }
     }
 
@@ -106,7 +104,7 @@ export async function createNotification({
   }
 }
 
-// 3. Add bulk notification creation for system-wide announcements
+// Add bulk notification creation for system-wide announcements
 export async function createBulkNotification({
   userIds,
   type,
@@ -138,7 +136,7 @@ export async function createBulkNotification({
     userIds.forEach((userId) => {
       io.to(userId).emit('notification', {
         ...notificationPayload,
-        id: `bulk-${Date.now()}-${userId}`, // Temporary ID for real-time
+        id: `bulk-${Date.now()}-${userId}`,
       });
     });
 
@@ -150,7 +148,7 @@ export async function createBulkNotification({
   }
 }
 
-// 4. Add notification cleanup function
+// Add notification cleanup function
 export async function cleanupOldNotifications(daysOld: number = 30) {
   try {
     const cutoffDate = new Date();
@@ -161,7 +159,7 @@ export async function cleanupOldNotifications(daysOld: number = 30) {
         createdAt: {
           lt: cutoffDate,
         },
-        isRead: true, // Only delete read notifications
+        isRead: true,
       },
     });
 
@@ -173,7 +171,6 @@ export async function cleanupOldNotifications(daysOld: number = 30) {
   }
 }
 
-// 5. Get notification statistics
 export async function getNotificationStatus(userId: string) {
   try {
     const stats = await prisma.notification.groupBy({
@@ -199,12 +196,6 @@ export async function getNotificationStatus(userId: string) {
     throw error;
   }
 }
-
-// async function sendSMS(phone: string, message: string) {
-//   // Placeholder for SMS implementation (Twilio, etc.)
-//   logger.info(`[SMS] To: ${phone}, Message: ${message}`);
-//   // Actual implementation will be added later
-// }
 
 export async function getNotificationsByUserId(userId: string) {
   return prisma.notification.findMany({
