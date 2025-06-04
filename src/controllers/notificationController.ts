@@ -1,7 +1,7 @@
 // src/controllers/notificationController.ts
 import { Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { AuthenticatedRequest } from '../types';
+import { AuthenticatedRequest } from '../types/index';
 import {
   getNotificationsByUserId,
   markNotificationAsRead as markAsRead,

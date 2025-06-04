@@ -181,9 +181,9 @@ export async function getNotificationStatus(userId: string) {
       },
     });
 
-    const total = stats.reduce((sum, stat) => sum + stat._count.id, 0);
-    const unread = stats.find((stat) => !stat.isRead)?._count.id || 0;
-    const read = stats.find((stat) => stat.isRead)?._count.id || 0;
+    const total = stats.reduce((sum: any, stat: any) => sum + stat._count.id, 0);
+    const unread = stats.find((stat: any) => !stat.isRead)?._count.id || 0;
+    const read = stats.find((stat: any) => stat.isRead)?._count.id || 0;
 
     return {
       total,

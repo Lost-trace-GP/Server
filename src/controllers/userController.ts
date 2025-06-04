@@ -1,4 +1,4 @@
-import { AuthenticatedRequest } from '../types';
+import { AuthenticatedRequest } from '../types/index';
 import { prisma } from '../utils/db';
 import { Request, Response } from 'express';
 

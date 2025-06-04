@@ -1,4 +1,4 @@
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import http from 'http';
 import jwt from 'jsonwebtoken';
 import logger from './utils/logger';
@@ -101,7 +101,7 @@ export async function sendPendingNotifications(userId: string) {
     if (unreadNotifications.length > 0) {
       // Fix: Find socket by checking all connected sockets for matching user ID
       const connectedSockets = Array.from(io.sockets.sockets.values());
-      const userSocket = connectedSockets.find((socket: any) => socket.data.user?.id === userId);
+      const userSocket = connectedSockets.find((socket: Socket) => socket.data.user?.id === userId);
 
       if (userSocket) {
         userSocket.emit('pending_notifications', unreadNotifications);

@@ -4,7 +4,7 @@ import { io } from '../socket';
 
 import logger from '../utils/logger';
 
-import { AuthenticatedRequest } from '../types';
+import { AuthenticatedRequest } from '../types/index';
 import { authenticateToken } from '../middleware/authMiddleware';
 const router = Router();
 

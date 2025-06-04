@@ -16,19 +16,15 @@ const startServer = async () => {
   try {
     await connectDb();
 
-    // Create HTTP server
     const wsServer = http.createServer(app);
 
-    // Initialize Socket.IO
     initializeSocketIO(wsServer);
 
-    // Start Express server
     const server = app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
       logger.info(`API Health: http://localhost:${PORT}/api/healthz`);
     });
 
-    // Handle graceful shutdown
     const exitHandler = async () => {
       if (server) {
         logger.info('Closing server...');

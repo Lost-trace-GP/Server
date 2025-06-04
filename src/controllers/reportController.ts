@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../utils/db';
 import { StatusCodes } from 'http-status-codes';
-import { AuthenticatedRequest } from '../types';
+import { AuthenticatedRequest } from '../types/index';
 import logger from '../utils/logger';
 import cloudinary from '../config/cloudinary';
 import { v4 as uuid } from 'uuid';
@@ -95,7 +95,7 @@ export const createReport = async (req: AuthenticatedRequest, res: Response): Pr
             (item) =>
               item.faceEmbedding &&
               Array.isArray(item.faceEmbedding) &&
-              item.faceEmbedding.length === 128,
+              (item.faceEmbedding as number[]).length === 128,
           );
 
           const matchResults = faceService.compare(
@@ -304,7 +304,7 @@ export const deleteReport = async (req: AuthenticatedRequest, res: Response): Pr
       return;
     }
     const result = await cloudinary.uploader.destroy(report.imagePublicId!);
-    console.log('Cloudinary delete result:', result);
+    logger.info('Cloudinary delete result:', result);
 
     await prisma.report.delete({
       where: {
