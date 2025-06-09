@@ -40,7 +40,7 @@ export const createReport = async (req: AuthenticatedRequest, res: Response): Pr
     }
     const embedding = Array.from(descriptor);
 
-    // Build a unique public_id
+    // Image's public_id to be stored on Cloudinary
     const slug = req.body.personName.replace(/\s+/g, '-').toLowerCase();
     const publicId = `lost-trace-reports/${slug}-${uuid()}`;
 

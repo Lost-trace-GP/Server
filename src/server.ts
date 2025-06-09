@@ -7,7 +7,7 @@ import http from 'http';
 
 configDotenv();
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 /**
  * Start the server
@@ -20,7 +20,7 @@ const startServer = async () => {
 
     initializeSocketIO(wsServer);
 
-    const server = app.listen(PORT, () => {
+    const server = app.listen(3000, '0.0.0.0', () => {
       logger.info(`Server running on port ${PORT}`);
       logger.info(`API Health: http://localhost:${PORT}/api/healthz`);
     });
