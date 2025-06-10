@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcrypt';
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import { StatusCodes } from 'http-status-codes';
-import { ApiError } from '../middleware/error.middleware';
+import { ApiError } from '../middleware/errorMiddleware';
 import { generateResetToken } from '../utils/token';
 import crypto from 'crypto';
 import { sendPasswordResetEmail } from '../utils/email';
@@ -13,7 +13,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
 
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, role } = req.body;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -28,11 +28,13 @@ export const register = async (req: Request, res: Response, next: NextFunction):
         email,
         phone: parseInt(phone),
         password: hashedPassword,
+        role: role || 'USER',
       },
     });
 
     const signOptions = { expiresIn: JWT_EXPIRES_IN } as SignOptions;
-    const token = jwt.sign({ id: user.id }, JSON_WEB_TOKEN_SECRET, signOptions);
+    const payload = { id: user.id, role: user.role };
+    const token = jwt.sign(payload, JSON_WEB_TOKEN_SECRET, signOptions);
 
     res.status(StatusCodes.CREATED).json({
       status: 'success',
@@ -67,7 +69,8 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     }
 
     const signOptions = { expiresIn: JWT_EXPIRES_IN } as SignOptions;
-    const token = jwt.sign({ id: user.id }, JSON_WEB_TOKEN_SECRET, signOptions);
+    const payload = { id: user.id, role: user.role };
+    const token = jwt.sign(payload, JSON_WEB_TOKEN_SECRET, signOptions);
 
     res.status(StatusCodes.OK).json({
       status: 'success',

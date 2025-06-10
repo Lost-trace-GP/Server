@@ -1,10 +1,11 @@
 import jwt, { Secret } from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { ApiError } from './error.middleware';
+import { ApiError } from './errorMiddleware';
 
 interface JwtPayload {
   id: string;
+  role: 'ADMIN' | 'USER' | 'POLICE';
   [key: string]: any;
 }
 
@@ -19,7 +20,7 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
   }
 
   jwt.verify(token, JSON_WEB_TOKEN_SECRET, (err, decoded) => {
-    if (err) {
+    if (err || typeof decoded !== 'object') {
       return next(new ApiError(StatusCodes.FORBIDDEN, 'Invalid or expired token.'));
     }
 

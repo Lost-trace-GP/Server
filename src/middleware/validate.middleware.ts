@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import Joi from 'joi';
 import { StatusCodes } from 'http-status-codes';
-import { ApiError } from './error.middleware';
+import { ApiError } from './errorMiddleware';
 
 type ValidationSchema = {
   params?: Joi.ObjectSchema;

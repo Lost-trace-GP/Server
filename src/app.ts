@@ -2,7 +2,7 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
-import { notFoundHandler, errorHandler } from './middleware/error.middleware';
+import { notFoundHandler, errorHandler } from './middleware/errorMiddleware';
 import authRouter from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import reportRoutes from './routes/reportsRoutes';

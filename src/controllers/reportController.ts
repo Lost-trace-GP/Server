@@ -10,6 +10,7 @@ import faceService from '../services/faceService';
 import { createNotification, NotificationType } from '../services/notification';
 
 export const createReport = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  //TODO: User can submit one report with the same image
   try {
     const file = req.file;
     if (!file) {
@@ -226,6 +227,7 @@ export const getAllReports = async (req: AuthenticatedRequest, res: Response): P
       status: 'Success',
       message: 'Reports fetched successfully',
       timestamp: new Date().toISOString(),
+      count: reports.length,
       data: { reports },
     });
   } catch (error) {
@@ -270,8 +272,9 @@ export const getReportById = async (req: AuthenticatedRequest, res: Response): P
 
 export const getUserReports = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
+    const userId = req.user?.id;
     const reports = await prisma.report.findMany({
-      where: { submittedById: req.user!.id },
+      where: { submittedById: userId },
       orderBy: { submittedAt: 'desc' },
     });
 
@@ -279,6 +282,7 @@ export const getUserReports = async (req: AuthenticatedRequest, res: Response): 
       status: 'Success',
       message: 'User reports fetched successfully',
       timestamp: new Date().toISOString(),
+      count: reports.length,
       data: { reports },
     });
   } catch (error) {
