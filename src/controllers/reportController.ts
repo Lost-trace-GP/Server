@@ -146,7 +146,8 @@ export const createReport = async (req: AuthenticatedRequest, res: Response): Pr
                   personName: report.personName,
                   matchedPersonName: matchedReport?.personName,
                 },
-                sendEmail: true, // Enable email for important matches
+                sendEmail: true,
+                sendSMS: true,
               }),
 
               // Notification for the user whose report was matched

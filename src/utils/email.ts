@@ -41,19 +41,16 @@ export const sendPasswordResetEmail = async (
 
 export const sendMatchFoundEmail = async (
   email: string,
-  reportId: string,
   personName: string,
-  matchedReportId: string,
-  confidence: string,
+  matchedReportId: string | null | undefined,
 ) => {
   await transporter.sendMail({
     to: email,
-    subject: 'Potential Match Found',
+    subject: `Potential Match Found for ${matchedReportId}`,
     text: `We've found a potential match for your missing person report for ${personName}.`,
     html: `
       <h1>Potential Match Found</h1>
       <p>We've found a potential match for your missing person report for <strong>${personName}</strong>.</p>
-      <p>Match confidence: ${confidence}</p>
       <p>Please log in to your account to view the details of this match.</p>
     `,
   });

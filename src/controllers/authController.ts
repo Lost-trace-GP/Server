@@ -7,6 +7,7 @@ import { ApiError } from '../middleware/errorMiddleware';
 import { generateResetToken } from '../utils/token';
 import crypto from 'crypto';
 import { sendPasswordResetEmail } from '../utils/email';
+import { sendSms } from '../utils/sms';
 
 const JSON_WEB_TOKEN_SECRET: Secret = process.env.JWT_SECRET || '';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
@@ -26,7 +27,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       data: {
         name,
         email,
-        phone: parseInt(phone),
+        phone: phone,
         password: hashedPassword,
         role: role || 'USER',
       },
@@ -35,6 +36,14 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     const signOptions = { expiresIn: JWT_EXPIRES_IN } as SignOptions;
     const payload = { id: user.id, role: user.role };
     const token = jwt.sign(payload, JSON_WEB_TOKEN_SECRET, signOptions);
+
+    await sendSms(
+      user.phone,
+      `LostTrace Alert: Hi ${user.name}, welcome to Fucking Lost Trace APP 
+      Do not listen to Youssef Sami our shirt will be blackkkkk,
+      - عمك والتر الابيض 
+      `,
+    );
 
     res.status(StatusCodes.CREATED).json({
       status: 'success',
