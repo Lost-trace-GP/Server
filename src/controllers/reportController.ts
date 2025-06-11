@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { NextFunction, Response } from 'express';
 import { prisma } from '../utils/db';
 import { StatusCodes } from 'http-status-codes';
 import { AuthenticatedRequest } from '../types/index';
@@ -8,6 +8,7 @@ import { v4 as uuid } from 'uuid';
 import { Readable } from 'stream';
 import faceService from '../services/faceService';
 import { createNotification, NotificationType } from '../services/notification';
+import { ApiError } from '../middleware/errorMiddleware';
 
 export const createReport = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   //TODO: User can submit one report with the same image
@@ -39,6 +40,63 @@ export const createReport = async (req: AuthenticatedRequest, res: Response): Pr
       });
       return;
     }
+    const userReports = await prisma.report.findMany({
+      where: {
+        submittedById: req.user!.id,
+      },
+      select: {
+        id: true,
+        faceEmbedding: true,
+        personName: true,
+        imageUrl: true,
+        submittedAt: true,
+      },
+    });
+
+    const duplicateThreshold = 0.3;
+    let isDuplicate = false;
+    let duplicateReport = null;
+
+    for (const existingReport of userReports) {
+      if (
+        existingReport.faceEmbedding &&
+        Array.isArray(existingReport.faceEmbedding) &&
+        existingReport.faceEmbedding.length === 128
+      ) {
+        const existingDescriptor = new Float32Array(existingReport.faceEmbedding as number[]);
+        const distance = faceService.compare(descriptor, [
+          {
+            id: existingReport.id,
+            descriptor: existingReport.faceEmbedding as number[],
+          },
+        ]);
+
+        if (distance.length > 0 && distance[0].distance < duplicateThreshold) {
+          isDuplicate = true;
+          duplicateReport = existingReport;
+          break;
+        }
+      }
+    }
+
+    if (isDuplicate && duplicateReport) {
+      logger.warn(
+        `User ${req.user!.id} attempted to submit duplicate image. Original report: ${duplicateReport.id}`,
+      );
+      res.status(StatusCodes.CONFLICT).json({
+        status: 'error',
+        message: 'You have already submitted a report with this image or a very similar image.',
+        data: {
+          existingReport: {
+            id: duplicateReport.id,
+            personName: duplicateReport.personName,
+            submittedAt: duplicateReport.submittedAt,
+          },
+        },
+      });
+      return;
+    }
+
     const embedding = Array.from(descriptor);
 
     // Image's public_id to be stored on Cloudinary
@@ -58,7 +116,7 @@ export const createReport = async (req: AuthenticatedRequest, res: Response): Pr
           logger.error(`Cloudinary upload error: ${error}`);
           return res
             .status(StatusCodes.INTERNAL_SERVER_ERROR)
-            .json({ message: 'Image upload failed' });
+            .json({ message: 'Image upload failed', error: error });
         }
 
         try {
@@ -328,5 +386,57 @@ export const deleteReport = async (req: AuthenticatedRequest, res: Response): Pr
       timestamp: new Date().toISOString(),
       error,
     });
+  }
+};
+
+export const updateReport = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const reportId = req.params.id;
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+
+    const existing = await prisma.report.findUnique({ where: { id: reportId } });
+
+    if (!existing) {
+      return next(new ApiError(StatusCodes.NOT_FOUND, 'Report not found'));
+    }
+
+    // Only the owner or admins/police can update
+    if (userRole === 'USER' && existing.submittedById !== userId) {
+      return next(new ApiError(StatusCodes.FORBIDDEN, 'You can only update your own reports'));
+    }
+
+    // Update fields
+    const { personName, age, gender, description, location, status } = req.body;
+
+    const updated = await prisma.report.update({
+      where: { id: reportId },
+      data: {
+        personName,
+        age,
+        gender,
+        description,
+        location,
+        status: userRole !== 'USER' ? status : undefined, // Only admin/police can update status
+      },
+    });
+
+    res.status(StatusCodes.OK).json({
+      message: 'Report updated successfully',
+      report: updated,
+    });
+  } catch (error) {
+    next(
+      new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to update report',
+        true,
+        (error as Error).stack,
+      ),
+    );
   }
 };
