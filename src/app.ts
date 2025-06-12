@@ -2,13 +2,15 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
-import { notFoundHandler, errorHandler } from './middleware/error.middleware';
+import { notFoundHandler, errorHandler } from './middleware/errorMiddleware';
 import authRouter from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import reportRoutes from './routes/reportsRoutes';
 import { authenticateToken } from './middleware/authMiddleware';
 import testRoutes from './routes/testRoutes';
 import notificationRoutes from './routes/notificationRoutes';
+import adminRoutes from './routes/adminRoutes';
+
 const app: Application = express();
 
 // Security middleware
@@ -31,7 +33,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/report', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/test', authenticateToken, testRoutes);
-
+app.use('/api/admin', adminRoutes);
 // API Status endpoint
 app.get('/api/healthz', (_, res) => {
   res.status(200).json({

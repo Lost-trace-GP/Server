@@ -2,6 +2,7 @@ import { prisma } from '../utils/db';
 import logger from '../utils/logger';
 import { io } from '../socket';
 import { sendSms } from '../utils/sms';
+import { sendMatchFoundEmail } from '../utils/email';
 
 export enum NotificationType {
   REPORT_APPROVED = 'REPORT_APPROVED',
@@ -10,11 +11,17 @@ export enum NotificationType {
   SYSTEM_ALERT = 'SYSTEM_ALERT',
 }
 
+interface NotificationMetaData {
+  reportId: string;
+  matchId: string;
+  personName: string | null | undefined;
+  matchedPersonName: string | null | undefined;
+}
 interface NotificationOptions {
   userId: string;
   type: NotificationType;
   message: string;
-  metadata?: Record<string, any>;
+  metadata?: NotificationMetaData;
   sendEmail?: boolean;
   sendSMS?: boolean;
 }
@@ -23,7 +30,7 @@ export async function createNotification({
   userId,
   type,
   message,
-  metadata = {},
+  metadata,
   sendEmail = false,
   sendSMS = true,
 }: NotificationOptions) {
@@ -38,13 +45,10 @@ export async function createNotification({
       throw new Error(`User with ID ${userId} not found`);
     }
 
-    // Create database notification with metadata
     const notification = await prisma.notification.create({
       data: {
         message,
         userId,
-        // Store metadata as JSON if your schema supports it
-        // If not, you might need to add a metadata field to your Notification model
       },
       include: {
         user: {
@@ -63,10 +67,8 @@ export async function createNotification({
       metadata,
     };
 
-    // Send to user's room
     io.to(userId).emit('notification', notificationPayload);
 
-    // Also try to find and send to specific socket (backup method)
     const connectedSockets = Array.from(io.sockets.sockets.values());
     const userSocket = connectedSockets.find((socket) => socket.data.user?.id === userId);
 
@@ -79,6 +81,11 @@ export async function createNotification({
 
     if (sendEmail && notification.user?.email) {
       try {
+        await sendMatchFoundEmail(
+          userExists.email,
+          metadata?.personName as string,
+          metadata?.matchId,
+        );
         logger.info(`Email notification queued for ${notification.user.email}`);
       } catch (emailError) {
         logger.error(`Failed to send email notification: ${emailError}`);
@@ -88,9 +95,9 @@ export async function createNotification({
     if (sendSMS && notification.user?.phone) {
       try {
         const smsBody = NotificationType.MATCH_FOUND
-          ? `LostTrace Alert: Possible match for ${metadata.personName} please checkout your dashboard`
+          ? `LostTrace Alert: Possible match for ${metadata?.personName} please checkout your dashboard`
           : `LostTrace: ${message}`;
-        await sendSms(notification.user.phone.toString(), smsBody);
+        await sendSms(notification.user.phone as string, smsBody);
         logger.info(`SMS notification queued for ${notification.user.phone}`);
       } catch (smsError) {
         logger.error(`Failed to send SMS notification: ${smsError}`);
