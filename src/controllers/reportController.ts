@@ -204,8 +204,8 @@ export const createReport = async (req: AuthenticatedRequest, res: Response): Pr
                   personName: report.personName,
                   matchedPersonName: matchedReport?.personName,
                 },
-                sendEmail: true,
-                sendSMS: true,
+                sendEmail: false,
+                sendSMS: false,
               }),
 
               // Notification for the user whose report was matched
@@ -220,7 +220,7 @@ export const createReport = async (req: AuthenticatedRequest, res: Response): Pr
                       personName: matchedReport.personName,
                       matchedPersonName: report.personName,
                     },
-                    sendEmail: true,
+                    sendEmail: false,
                   })
                 : Promise.resolve(null),
             ]);

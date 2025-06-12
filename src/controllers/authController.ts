@@ -89,6 +89,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
           id: user.id,
           name: user.name,
           email: user.email,
+          role: user.role,
         },
       },
     });
