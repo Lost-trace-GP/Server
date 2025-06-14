@@ -38,20 +38,32 @@ export const sendPasswordResetEmail = async (
     throw new Error('Failed to send password reset email');
   }
 };
-
 export const sendMatchFoundEmail = async (
   email: string,
   personName: string,
   matchedReportId: string | null | undefined,
 ) => {
+  const dashboardUrl = `${process.env.FRONTEND_URL}/dashboard/reports/${matchedReportId}`;
+
   await transporter.sendMail({
     to: email,
-    subject: `Potential Match Found for ${matchedReportId}`,
-    text: `We've found a potential match for your missing person report for ${personName}.`,
+    subject: `🔍 Possible Match Found for ${personName}`,
     html: `
-      <h1>Potential Match Found</h1>
-      <p>We've found a potential match for your missing person report for <strong>${personName}</strong>.</p>
-      <p>Please log in to your account to view the details of this match.</p>
+      <h2>Good News from Lost Trace</h2>
+      <p>We’ve detected a <strong>potential match</strong> for your missing person report involving:</p>
+      <ul>
+        <li><strong>Person Name:</strong> ${personName}</li>
+        <li><strong>Match Report ID:</strong> ${matchedReportId || 'N/A'}</li>
+      </ul>
+
+      <p>Please <a href="${dashboardUrl}">click here</a> or visit your <strong>Lost Trace Dashboard</strong> to review the details of this match.</p>
+
+      <p>If you believe this is a valid match, please contact the reporting user or local authorities immediately.</p>
+
+      <hr/>
+      <p>This is an automated alert from the Lost Trace system. Stay hopeful — we’re here to help.</p>
     `,
   });
+
+  logger.info(`Match alert email sent to ${email}`);
 };

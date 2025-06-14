@@ -31,7 +31,7 @@ export async function createNotification({
   type,
   message,
   metadata,
-  sendEmail = false,
+  sendEmail = true,
   sendSMS = true,
 }: NotificationOptions) {
   try {
@@ -94,9 +94,11 @@ export async function createNotification({
 
     if (sendSMS && notification.user?.phone) {
       try {
-        const smsBody = NotificationType.MATCH_FOUND
-          ? `LostTrace Alert: Possible match for ${metadata?.personName} please checkout your dashboard`
-          : `LostTrace: ${message}`;
+        const smsBody =
+          type === NotificationType.MATCH_FOUND
+            ? ` Lost Trace Alert:\nWe found a possible match for "${metadata?.personName}". Check your dashboard now: ${process.env.FRONTEND_URL}/dashboard/reports/${metadata?.matchId}`
+            : ` Lost Trace: ${message}`;
+
         await sendSms(notification.user.phone as string, smsBody);
         logger.info(`SMS notification queued for ${notification.user.phone}`);
       } catch (smsError) {
