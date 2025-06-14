@@ -13,7 +13,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
 
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { name, email, password, phone, role } = req.body;
+    const { name, email, password, role } = req.body;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -26,7 +26,6 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       data: {
         name,
         email,
-        phone: phone,
         password: hashedPassword,
         role: role || 'USER',
       },
@@ -35,14 +34,6 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     const signOptions = { expiresIn: JWT_EXPIRES_IN } as SignOptions;
     const payload = { id: user.id, role: user.role };
     const token = jwt.sign(payload, JSON_WEB_TOKEN_SECRET, signOptions);
-
-    // await sendSms(
-    //   user.phone,
-    //   `LostTrace Alert: Hi ${user.name}, welcome to Fucking Lost Trace APP
-    //   Do not listen to Youssef Sami our shirt will be blackkkkk,
-    //   - عمك والتر الابيض
-    //   `,
-    // );
 
     res.status(StatusCodes.CREATED).json({
       status: 'success',

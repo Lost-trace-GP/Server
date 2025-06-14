@@ -11,7 +11,6 @@ import { createNotification, NotificationType } from '../services/notification';
 import { ApiError } from '../middleware/errorMiddleware';
 
 export const createReport = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  //TODO: User can submit one report with the same image
   try {
     const file = req.file;
     if (!file) {
@@ -21,7 +20,7 @@ export const createReport = async (req: AuthenticatedRequest, res: Response): Pr
     }
 
     // Validate required fields
-    const requiredFields = ['personName', 'age', 'gender', 'description'];
+    const requiredFields = ['personName', 'age', 'gender', 'description', 'contact_number'];
     for (const field of requiredFields) {
       if (!req.body[field]) {
         logger.warn(`Report creation attempted with missing required field: ${field}`);
@@ -47,6 +46,7 @@ export const createReport = async (req: AuthenticatedRequest, res: Response): Pr
       select: {
         id: true,
         faceEmbedding: true,
+        contact_number: true,
         personName: true,
         imageUrl: true,
         submittedAt: true,
@@ -121,10 +121,12 @@ export const createReport = async (req: AuthenticatedRequest, res: Response): Pr
 
         try {
           // Create the report
+          console.log(req.body);
           const report = await prisma.report.create({
             data: {
               personName: req.body.personName,
               age: parseInt(req.body.age),
+              contact_number: req.body.contact_number,
               gender: req.body.gender,
               description: req.body.description,
               faceEmbedding: embedding,
@@ -142,6 +144,7 @@ export const createReport = async (req: AuthenticatedRequest, res: Response): Pr
               faceEmbedding: true,
               personName: true,
               age: true,
+              contact_number: true,
               gender: true,
               imageUrl: true,
               status: true,
@@ -389,6 +392,58 @@ export const deleteReport = async (req: AuthenticatedRequest, res: Response): Pr
   }
 };
 
+// export const updateReport = async (
+//   req: AuthenticatedRequest,
+//   res: Response,
+//   next: NextFunction,
+// ) => {
+//   try {
+//     const reportId = req.params.id;
+//     const userId = req.user?.id;
+//     const userRole = req.user?.role;
+
+//     const existing = await prisma.report.findUnique({ where: { id: reportId } });
+
+//     if (!existing) {
+//       return next(new ApiError(StatusCodes.NOT_FOUND, 'Report not found'));
+//     }
+
+//     // Only the owner or admins/police can update
+//     if (userRole === 'USER' && existing.submittedById !== userId) {
+//       return next(new ApiError(StatusCodes.FORBIDDEN, 'You can only update your own reports'));
+//     }
+
+//     // Update fields
+//     const { personName, age, gender, description, location, status } = req.body;
+
+//     const updated = await prisma.report.update({
+//       where: { id: reportId },
+//       data: {
+//         personName,
+//         age,
+//         gender,
+//         description,
+//         location,
+//         status: userRole !== 'USER' ? status : undefined, // Only admin/police can update status
+//       },
+//     });
+
+//     res.status(StatusCodes.OK).json({
+//       message: 'Report updated successfully',
+//       report: updated,
+//     });
+//   } catch (error) {
+//     next(
+//       new ApiError(
+//         StatusCodes.INTERNAL_SERVER_ERROR,
+//         'Failed to update report',
+//         true,
+//         (error as Error).stack,
+//       ),
+//     );
+//   }
+// };
+
 export const updateReport = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -399,21 +454,31 @@ export const updateReport = async (
     const userId = req.user?.id;
     const userRole = req.user?.role;
 
-    const existing = await prisma.report.findUnique({ where: { id: reportId } });
+    const existingReport = await prisma.report.findUnique({
+      where: { id: reportId },
+    });
 
-    if (!existing) {
+    if (!existingReport) {
       return next(new ApiError(StatusCodes.NOT_FOUND, 'Report not found'));
     }
 
-    // Only the owner or admins/police can update
-    if (userRole === 'USER' && existing.submittedById !== userId) {
-      return next(new ApiError(StatusCodes.FORBIDDEN, 'You can only update your own reports'));
+    // USERs can only update their own reports
+    if (userRole === 'USER' && existingReport.submittedById !== userId) {
+      return next(
+        new ApiError(StatusCodes.FORBIDDEN, 'You do not have permission to update this report'),
+      );
     }
 
-    // Update fields
-    const { personName, age, gender, description, location, status } = req.body;
+    const {
+      personName,
+      age,
+      gender,
+      description,
+      location,
+      status, // should be ignored if USER
+    } = req.body;
 
-    const updated = await prisma.report.update({
+    const updatedReport = await prisma.report.update({
       where: { id: reportId },
       data: {
         personName,
@@ -421,13 +486,15 @@ export const updateReport = async (
         gender,
         description,
         location,
-        status: userRole !== 'USER' ? status : undefined, // Only admin/police can update status
+        // Only allow status updates by ADMIN or POLICE
+        ...(userRole !== 'USER' && status ? { status } : {}),
       },
     });
 
     res.status(StatusCodes.OK).json({
+      status: 'success',
       message: 'Report updated successfully',
-      report: updated,
+      data: updatedReport,
     });
   } catch (error) {
     next(

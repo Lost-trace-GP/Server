@@ -21,6 +21,6 @@ router.get('/', getAllReports); // Admin/Police view
 router.get('/user', getUserReports); // Logged-in user's reports
 router.get('/:id', getReportById);
 router.delete('/:id', deleteReport);
-router.put('/:id', updateReport);
+router.patch('/:id/update', updateReport);
 
 export default router;
