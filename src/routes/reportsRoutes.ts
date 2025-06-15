@@ -14,7 +14,6 @@ import { requireRole } from '../middleware/roleMiddleware';
 const router = Router();
 
 router.use(authenticateToken);
-//TODO: update report endpoint
 
 router.post('/', requireRole('USER'), upload.single('image'), createReport);
 router.get('/', getAllReports); // Admin/Police view

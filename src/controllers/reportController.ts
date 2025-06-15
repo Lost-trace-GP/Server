@@ -206,6 +206,7 @@ export const createReport = async (req: AuthenticatedRequest, res: Response): Pr
                   matchId: best.id,
                   personName: report.personName,
                   matchedPersonName: matchedReport?.personName,
+                  contactNumber: matchedReport?.contact_number,
                 },
                 sendEmail: true,
                 sendSMS: true,
@@ -222,6 +223,7 @@ export const createReport = async (req: AuthenticatedRequest, res: Response): Pr
                       matchId: report.id,
                       personName: matchedReport.personName,
                       matchedPersonName: report.personName,
+                      contactNumber: matchedReport.contact_number,
                     },
                     sendEmail: false,
                   })
@@ -392,58 +394,6 @@ export const deleteReport = async (req: AuthenticatedRequest, res: Response): Pr
   }
 };
 
-// export const updateReport = async (
-//   req: AuthenticatedRequest,
-//   res: Response,
-//   next: NextFunction,
-// ) => {
-//   try {
-//     const reportId = req.params.id;
-//     const userId = req.user?.id;
-//     const userRole = req.user?.role;
-
-//     const existing = await prisma.report.findUnique({ where: { id: reportId } });
-
-//     if (!existing) {
-//       return next(new ApiError(StatusCodes.NOT_FOUND, 'Report not found'));
-//     }
-
-//     // Only the owner or admins/police can update
-//     if (userRole === 'USER' && existing.submittedById !== userId) {
-//       return next(new ApiError(StatusCodes.FORBIDDEN, 'You can only update your own reports'));
-//     }
-
-//     // Update fields
-//     const { personName, age, gender, description, location, status } = req.body;
-
-//     const updated = await prisma.report.update({
-//       where: { id: reportId },
-//       data: {
-//         personName,
-//         age,
-//         gender,
-//         description,
-//         location,
-//         status: userRole !== 'USER' ? status : undefined, // Only admin/police can update status
-//       },
-//     });
-
-//     res.status(StatusCodes.OK).json({
-//       message: 'Report updated successfully',
-//       report: updated,
-//     });
-//   } catch (error) {
-//     next(
-//       new ApiError(
-//         StatusCodes.INTERNAL_SERVER_ERROR,
-//         'Failed to update report',
-//         true,
-//         (error as Error).stack,
-//       ),
-//     );
-//   }
-// };
-
 export const updateReport = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -454,31 +404,21 @@ export const updateReport = async (
     const userId = req.user?.id;
     const userRole = req.user?.role;
 
-    const existingReport = await prisma.report.findUnique({
-      where: { id: reportId },
-    });
+    const existing = await prisma.report.findUnique({ where: { id: reportId } });
 
-    if (!existingReport) {
+    if (!existing) {
       return next(new ApiError(StatusCodes.NOT_FOUND, 'Report not found'));
     }
 
-    // USERs can only update their own reports
-    if (userRole === 'USER' && existingReport.submittedById !== userId) {
-      return next(
-        new ApiError(StatusCodes.FORBIDDEN, 'You do not have permission to update this report'),
-      );
+    // Only the owner or admins/police can update
+    if (userRole === 'USER' && existing.submittedById !== userId) {
+      return next(new ApiError(StatusCodes.FORBIDDEN, 'You can only update your own reports'));
     }
 
-    const {
-      personName,
-      age,
-      gender,
-      description,
-      location,
-      status, // should be ignored if USER
-    } = req.body;
+    // Update fields
+    const { personName, age, gender, description, location, status } = req.body;
 
-    const updatedReport = await prisma.report.update({
+    const updated = await prisma.report.update({
       where: { id: reportId },
       data: {
         personName,
@@ -486,15 +426,13 @@ export const updateReport = async (
         gender,
         description,
         location,
-        // Only allow status updates by ADMIN or POLICE
-        ...(userRole !== 'USER' && status ? { status } : {}),
+        status: userRole !== 'USER' ? status : undefined, // Only admin/police can update status
       },
     });
 
     res.status(StatusCodes.OK).json({
-      status: 'success',
       message: 'Report updated successfully',
-      data: updatedReport,
+      report: updated,
     });
   } catch (error) {
     next(

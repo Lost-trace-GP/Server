@@ -34,7 +34,7 @@ app.use('/api/report', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/test', authenticateToken, testRoutes);
 app.use('/api/admin', adminRoutes);
-// API Status endpoint
+
 app.get('/api/healthz', (_, res) => {
   res.status(200).json({
     status: 'success',

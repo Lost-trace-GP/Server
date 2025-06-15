@@ -16,6 +16,7 @@ interface NotificationMetaData {
   matchId: string;
   personName: string | null | undefined;
   matchedPersonName: string | null | undefined;
+  contactNumber: string | undefined | null;
 }
 interface NotificationOptions {
   userId: string;
@@ -38,7 +39,7 @@ export async function createNotification({
     // Validate user exists
     const userExists = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, phone: true },
+      select: { id: true, email: true, name: true },
     });
 
     if (!userExists) {
@@ -52,7 +53,7 @@ export async function createNotification({
       },
       include: {
         user: {
-          select: { email: true, name: true, phone: true },
+          select: { email: true, name: true },
         },
       },
     });
@@ -92,15 +93,15 @@ export async function createNotification({
       }
     }
 
-    if (sendSMS && notification.user?.phone) {
+    if (sendSMS && metadata?.contactNumber) {
       try {
         const smsBody =
           type === NotificationType.MATCH_FOUND
             ? ` Lost Trace Alert:\nWe found a possible match for "${metadata?.personName}". Check your dashboard now: ${process.env.FRONTEND_URL}/dashboard/reports/${metadata?.matchId}`
             : ` Lost Trace: ${message}`;
 
-        await sendSms(notification.user.phone as string, smsBody);
-        logger.info(`SMS notification queued for ${notification.user.phone}`);
+        await sendSms(metadata.contactNumber, smsBody);
+        logger.info(`SMS notification queued for ${metadata.contactNumber}`);
       } catch (smsError) {
         logger.error(`Failed to send SMS notification: ${smsError}`);
       }
